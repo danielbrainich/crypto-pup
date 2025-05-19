@@ -115,7 +115,7 @@ const CryptoPup = () => {
                     <select
                         value={coin}
                         onChange={(e) => setCoin(e.target.value)}
-                        className="w-full p-2 rounded border dark:bg-gray-700 dark:text-white dark:border-gray-600 font-jet"
+                        className="w-full p-2 rounded border dark:bg-gray-700 dark:text-white dark:border-gray-600 focus:outline-none focus:ring-0 font-jet"
                     >
                         {Object.entries(COINS).map(([key, label]) => (
                             <option key={key} value={key}>
@@ -127,7 +127,7 @@ const CryptoPup = () => {
                     <select
                         value={period}
                         onChange={(e) => setPeriod(e.target.value)}
-                        className="w-full p-2 rounded border dark:bg-gray-700 dark:text-white dark:border-gray-600 font-jet"
+                        className="w-full p-2 rounded border dark:bg-gray-700 dark:text-white dark:border-gray-600 focus:outline-none focus:ring-0 font-jet"
                     >
                         {Object.keys(PERIODS).map((p) => (
                             <option key={p} value={p}>
