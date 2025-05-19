@@ -1,4 +1,4 @@
-import logo from './logo.svg';
+// import logo from './logo.svg';
 import CryptoPup from './CryptoPup';
 import './App.css';
 
