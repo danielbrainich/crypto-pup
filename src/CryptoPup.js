@@ -227,12 +227,12 @@ const CryptoPup = () => {
                             <p className="text-gray-600 dark:text-gray-300 mt-4 text-sm font-jet leading-relaxed">
                             My dog Uzi sold his treats 🍗 and went all in on crypto.
                             <br /><br />
-                            Now you can track the charts and chase the gains 🚀 with him.
+                            Now you can watch price movements and chase gains 🚀 with him.
 
                                 <br /><br />
                                 Built with React + Tailwind. iPhone app coming soon! 📱
                             </p><br />
-                            🐕 
+                            🐕
                         </div>
                         <p className="text-xs text-gray-400 dark:text-gray-500 font-jet">
                             © 2025 Daniel Brainich 💻
