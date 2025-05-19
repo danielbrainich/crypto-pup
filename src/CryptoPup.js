@@ -19,9 +19,14 @@ const CryptoPup = () => {
   const [period, setPeriod] = useState('24h');
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
 
   // in-memory cache { bitcoin: { data: ..., timestamp: ... }, ... }
   const cacheRef = useRef({});
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', darkMode);
+  }, [darkMode]);
 
   useEffect(() => {
     const fetchCoinData = async () => {
@@ -78,54 +83,69 @@ const CryptoPup = () => {
   const change = getChange();
 
   return (
-    <div style={{ textAlign: 'center', fontFamily: 'Arial' }}>
-      <h1>Crypto Pup</h1>
+    <div className={`min-h-screen flex items-center justify-center ${darkMode ? 'bg-gray-900' : 'bg-gray-100'} transition-colors`}>
+      <div className="w-full max-w-md p-6 bg-white dark:bg-gray-800 rounded-xl shadow-md text-center space-y-4">
+        {/* Toggle Button */}
+        <div className="flex justify-end">
+          <button
+            onClick={() => setDarkMode(!darkMode)}
+            className="text-sm border px-2 py-1 rounded dark:text-white"
+          >
+            {darkMode ? '☀️ Light Mode' : '🌙 Dark Mode'}
+          </button>
+        </div>
 
-      <select
-        value={coin}
-        onChange={(e) => {
-          console.log('🔁 Coin changed to', e.target.value);
-          setCoin(e.target.value);
-        }}
-      >
-        {Object.keys(COINS).map((key) => (
-          <option key={key} value={key}>
-            {COINS[key]}
-          </option>
-        ))}
-      </select>
+        {/* Title */}
+        <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Crypto Pup</h1>
 
-      <select
-        value={period}
-        onChange={(e) => {
-          console.log('📆 Period changed to', e.target.value);
-          setPeriod(e.target.value);
-        }}
-      >
-        {Object.keys(PERIODS).map((p) => (
-          <option key={p} value={p}>
-            {p}
-          </option>
-        ))}
-      </select>
+        {/* Dropdowns */}
+        <div className="space-y-2">
+          <select
+            value={coin}
+            onChange={(e) => setCoin(e.target.value)}
+            className="w-full p-2 rounded border dark:bg-gray-700 dark:text-white"
+          >
+            {Object.entries(COINS).map(([key, label]) => (
+              <option key={key} value={key}>{label}</option>
+            ))}
+          </select>
 
-      {loading ? (
-        <p>Loading...</p>
-      ) : data ? (
-        <>
-          <h2>{data.name}</h2>
-          <p>Current Price: ${data.current_price.toLocaleString()}</p>
-          <p>Change ({period}): {change?.toFixed(2)}%</p>
-          <img
-            src={getMoodImage(change)}
-            alt="crypto pup mood"
-            style={{ maxWidth: '200px' }}
-          />
-          <p><strong>{getCaption(change)}</strong></p>
-        </>
-      ) : (
-        <p>No data yet.</p>
-      )}
+          <select
+            value={period}
+            onChange={(e) => setPeriod(e.target.value)}
+            className="w-full p-2 rounded border dark:bg-gray-700 dark:text-white"
+          >
+            {Object.keys(PERIODS).map((p) => (
+              <option key={p} value={p}>{p}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Content */}
+        {loading ? (
+          <p className="text-gray-500 dark:text-gray-400">Loading...</p>
+        ) : data ? (
+          <>
+            <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">{data.name}</h2>
+            <p className="text-gray-600 dark:text-gray-300">
+              Current Price: ${data.current_price.toLocaleString()}
+            </p>
+            <p className={`font-medium ${change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+              Change ({period}): {change.toFixed(2)}%
+            </p>
+            <img
+              src={change >= 0 ? '/happy-dog.webp' : '/sad-dog.webp'}
+              alt="Crypto pup mood"
+              className="mx-auto w-40 rounded mt-4"
+            />
+            <p className="font-semibold text-gray-800 dark:text-gray-100">
+              {change >= 0 ? 'Crypto Pup is happy!' : 'Crypto Pup is sad.'}
+            </p>
+          </>
+        ) : (
+          <p className="text-gray-500 dark:text-gray-400">No data available</p>
+        )}
+      </div>
     </div>
   );
 };
