@@ -20,8 +20,10 @@ const CryptoPup = () => {
     const [period, setPeriod] = useState("24h");
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
     const [darkMode, setDarkMode] = useState(false);
     const [flipped, setFlipped] = useState(false);
+    const [retryToken, setRetryToken] = useState(0);
 
     // in-memory cache { bitcoin: { data: ..., timestamp: ... }, ... }
     const cacheRef = useRef({});
@@ -31,9 +33,53 @@ const CryptoPup = () => {
     }, [darkMode]);
 
     useEffect(() => {
+        const controller = new AbortController();
+        let cancelled = false;
+
+        // Retries once on transient failures (network blips, rate limits, bad
+        // response bodies) before giving up and surfacing an error to the user.
+        const fetchWithRetry = async (attempt) => {
+            try {
+                const res = await fetch(
+                    `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${coin}&price_change_percentage=24h,7d,30d`,
+                    { signal: controller.signal }
+                );
+
+                if (!res.ok) {
+                    throw new Error(`CoinGecko request failed with status ${res.status}`);
+                }
+
+                const json = await res.json();
+                const coinData = json[0];
+
+                if (!coinData) {
+                    throw new Error("No data returned for this coin");
+                }
+
+                if (cancelled) return;
+                console.log("📦 Received data:", coinData);
+                setData(coinData);
+                setError(null);
+                cacheRef.current[coin] = { data: coinData, timestamp: Date.now() };
+            } catch (err) {
+                if (err.name === "AbortError" || cancelled) return;
+
+                if (attempt < 1) {
+                    console.warn(`⚠️ Fetch attempt ${attempt + 1} failed, retrying…`, err);
+                    await new Promise((resolve) => setTimeout(resolve, 1000));
+                    if (!cancelled) await fetchWithRetry(attempt + 1);
+                    return;
+                }
+
+                console.error("❌ Error fetching data", err);
+                setError("Couldn't load data. Please try again.");
+            }
+        };
+
         const fetchCoinData = async () => {
             console.log(`Selected coin: ${coin}`);
             setLoading(true);
+            setError(null);
 
             const now = Date.now();
             const cached = cacheRef.current[coin];
@@ -46,28 +92,19 @@ const CryptoPup = () => {
             }
 
             console.log("🆕 Fetching new data for", coin);
-            try {
-                const res = await fetch(
-                    `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${coin}&price_change_percentage=24h,7d,30d`
-                );
-                const json = await res.json();
-
-                console.log("📦 Received data:", json[0]);
-
-                setData(json[0]);
-                cacheRef.current[coin] = {
-                    data: json[0],
-                    timestamp: now,
-                };
-            } catch (err) {
-                console.error("❌ Error fetching data", err);
-            } finally {
-                setLoading(false);
-            }
+            await fetchWithRetry(0);
+            if (!cancelled) setLoading(false);
         };
 
         fetchCoinData();
-    }, [coin]);
+
+        return () => {
+            cancelled = true;
+            controller.abort();
+        };
+    }, [coin, retryToken]);
+
+    const handleRetry = () => setRetryToken((t) => t + 1);
 
     const getChange = () => {
         if (!data) return null;
@@ -172,6 +209,18 @@ const CryptoPup = () => {
                                 <div className="h-52 w-52 bg-gray-300 dark:bg-gray-600 rounded" />
                                 <div className="h-4 w-40 bg-gray-300 dark:bg-gray-600 rounded" />
                             </div>
+                        ) : error ? (
+                            <div className="flex flex-col items-center space-y-3 pt-4">
+                                <p className="text-red-500 dark:text-red-400 font-jet">
+                                    {error}
+                                </p>
+                                <button
+                                    onClick={handleRetry}
+                                    className="px-4 py-2 rounded border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 font-jet"
+                                >
+                                    Retry
+                                </button>
+                            </div>
                         ) : data ? (
                             <>
                                 <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100 font-jet">
@@ -230,12 +279,12 @@ const CryptoPup = () => {
                             Now you can watch price movements and chase gains 🚀 with him.
 
                                 <br /><br />
-                                Built with React + Tailwind. iPhone app coming soon! 📱
+                                Built with React + Tailwind. 💻
                             </p><br />
                             🐕
                         </div>
                         <p className="text-xs text-gray-400 dark:text-gray-500 font-jet">
-                            © 2025 Daniel Brainich 💻
+                            © 2025 Daniel Brainich 
                         </p>
                     </div>
                 </div>
