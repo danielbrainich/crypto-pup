@@ -3,6 +3,11 @@
   publish = "build"
   functions = "netlify/functions"
 
+[dev]
+  port = 8888
+  targetPort = 3000
+  framework = "create-react-app"
+
 [[redirects]]
   from = "/api/crypto-data"
   to = "/.netlify/functions/crypto-data"

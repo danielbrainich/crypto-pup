@@ -80,7 +80,7 @@ const Sparkline = ({ prices, period, positive, darkMode }) => {
         >
             <svg
                 viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
-                className="w-full h-40 sm:h-32"
+                className="w-full h-[clamp(4rem,16dvh,10rem)] sm:h-32"
                 preserveAspectRatio="none"
                 aria-hidden="true"
             >

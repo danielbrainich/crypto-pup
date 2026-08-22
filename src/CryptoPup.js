@@ -162,13 +162,13 @@ const CryptoPup = () => {
 
     return (
         <div
-            className={`min-h-screen flex items-center justify-center ${
+            className={`min-h-dvh flex items-center justify-center ${
                 darkMode ? "bg-gray-900" : "bg-gray-100"
             } transition-colors`}
         >
             <div className="w-full sm:max-w-md relative sm:[perspective:1000px]">
                 <div
-                    className={`relative w-full h-screen sm:h-[600px] overflow-hidden sm:overflow-visible transition-transform duration-500 ease-in-out sm:[transform-style:preserve-3d] ${
+                    className={`relative w-full h-dvh sm:h-[600px] overflow-hidden sm:overflow-visible transition-transform duration-500 ease-in-out sm:[transform-style:preserve-3d] ${
                         flipped ? "sm:[transform:rotateY(180deg)]" : ""
                     }`}
                 >
@@ -178,7 +178,7 @@ const CryptoPup = () => {
                     }`}
                 >
                     {/* FRONT SIDE */}
-                    <div className="w-1/2 h-full shrink-0 sm:w-full sm:h-full sm:absolute sm:inset-0 sm:[backface-visibility:hidden] pt-[max(2.5rem,env(safe-area-inset-top)+1rem)] px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] bg-gray-100 dark:bg-gray-900 sm:bg-white sm:dark:bg-gray-800 rounded-none sm:rounded-xl text-center flex flex-col gap-5 sm:gap-3 sm:pt-7 sm:pb-4 min-h-[400px]">
+                    <div className="w-1/2 h-full shrink-0 sm:w-full sm:h-full sm:absolute sm:inset-0 sm:[backface-visibility:hidden] pt-[calc(env(safe-area-inset-top)+clamp(0.75rem,4dvh,2.5rem))] px-6 pb-[calc(env(safe-area-inset-bottom)+clamp(0.75rem,2.5dvh,1.5rem))] bg-gray-100 dark:bg-gray-900 sm:bg-white sm:dark:bg-gray-800 rounded-none sm:rounded-xl text-center flex flex-col gap-[clamp(0.5rem,2dvh,1.25rem)] sm:gap-3 sm:pt-7 sm:pb-4 min-h-[400px]">
                     <div className="flex items-center">
                         {/* I Button */}
                         <div className="flex-1 flex justify-start">
@@ -217,7 +217,7 @@ const CryptoPup = () => {
 
                         {/* Period selector */}
                         <div
-                            className="relative grid rounded-full bg-gray-200 dark:bg-gray-700 px-[5px] py-1 w-fit mx-auto mt-4"
+                            className="relative grid rounded-full bg-gray-200 dark:bg-gray-700 px-[5px] py-1 w-fit mx-auto mt-[clamp(0.5rem,2dvh,1rem)]"
                             style={{
                                 gridTemplateColumns: `repeat(${Object.keys(SLICE_POINTS).length}, 1fr)`,
                             }}
@@ -251,9 +251,9 @@ const CryptoPup = () => {
                             <div className="flex flex-col items-center space-y-2 pt-2 animate-pulse text-gray-400 dark:text-gray-500">
                                 <div className="h-4 w-40 bg-gray-300 dark:bg-gray-600 rounded" />
                                 <div className="h-4 w-20 bg-gray-300 dark:bg-gray-600 rounded" />
-                                <div className="h-56 w-56 sm:h-44 sm:w-44 bg-gray-300 dark:bg-gray-600 rounded" />
+                                <div className="h-[clamp(6rem,22dvh,14rem)] w-[clamp(6rem,22dvh,14rem)] sm:h-44 sm:w-44 bg-gray-300 dark:bg-gray-600 rounded" />
                                 <div className="h-4 w-36 bg-gray-300 dark:bg-gray-600 rounded" />
-                                <div className="h-40 sm:h-24 w-full bg-gray-300 dark:bg-gray-600 rounded" />
+                                <div className="h-[clamp(4rem,16dvh,10rem)] sm:h-24 w-full bg-gray-300 dark:bg-gray-600 rounded" />
                             </div>
                         ) : error ? (
                             <div className="flex flex-col items-center space-y-3 pt-4">
@@ -284,7 +284,7 @@ const CryptoPup = () => {
                                         Change ({period}): {change.toFixed(2)}%
                                     </p>
                                 </div>
-                                <div className="h-56 w-56 sm:h-44 sm:w-44 mx-auto overflow-hidden rounded flex items-center justify-center">
+                                <div className="h-[clamp(6rem,22dvh,14rem)] w-[clamp(6rem,22dvh,14rem)] sm:h-44 sm:w-44 mx-auto overflow-hidden rounded flex items-center justify-center">
                                     <img
                                         src={getMoodImage(change)}
                                         alt="Crypto pup mood"
@@ -311,10 +311,19 @@ const CryptoPup = () => {
                     </div>
 
                     {/* BACK SIDE */}
-                    <div className="relative w-1/2 h-full shrink-0 sm:w-full sm:h-full sm:absolute sm:inset-0 sm:[backface-visibility:hidden] sm:[transform:rotateY(180deg)] pt-[max(2.5rem,env(safe-area-inset-top)+1rem)] px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:p-6 bg-gray-100 dark:bg-gray-900 sm:bg-white sm:dark:bg-gray-800 rounded-none sm:rounded-xl text-center min-h-[400px] flex flex-col justify-center">
+                    <div className="relative w-1/2 h-full shrink-0 sm:w-full sm:h-full sm:absolute sm:inset-0 sm:[backface-visibility:hidden] sm:[transform:rotateY(180deg)] pt-[calc(env(safe-area-inset-top)+clamp(0.75rem,4dvh,2.5rem))] px-6 pb-[calc(env(safe-area-inset-bottom)+clamp(0.75rem,2.5dvh,1.5rem))] sm:p-6 bg-gray-100 dark:bg-gray-900 sm:bg-white sm:dark:bg-gray-800 rounded-none sm:rounded-xl text-center min-h-[400px] flex flex-col sm:justify-center">
+                        <div className="flex items-center h-8 sm:hidden">
+                            <button
+                                onClick={() => setFlipped(false)}
+                                className="text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-white"
+                                aria-label="Back to main"
+                            >
+                                <ArrowLeft size={24} strokeWidth={2} />
+                            </button>
+                        </div>
                         <button
                             onClick={() => setFlipped(false)}
-                            className="absolute top-4 left-4 text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-white text-xl"
+                            className="hidden sm:block absolute top-4 left-4 text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-white text-xl"
                             aria-label="Back to main"
                         >
                             <ArrowLeft size={28} />

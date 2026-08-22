@@ -2,8 +2,17 @@
 @tailwind components;
 @tailwind utilities;
 
+html {
+  background-color: #f3f4f6; /* gray-100, matches CryptoPup's light background */
+}
+
+html.dark {
+  background-color: #111827; /* gray-900, matches CryptoPup's dark background */
+}
+
 body {
   margin: 0;
+  background-color: inherit;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
