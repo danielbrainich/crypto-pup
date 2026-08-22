@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 html {
-  background-color: #f3f4f6; /* gray-100, matches CryptoPup's light background */
+  background-color: #ffffff; /* matches CryptoPup's light background */
 }
 
 html.dark {

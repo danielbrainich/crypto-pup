@@ -153,7 +153,7 @@ const CryptoPup = () => {
     return (
         <div
             className={`min-h-dvh flex items-center justify-center ${
-                darkMode ? "bg-gray-900" : "bg-gray-100"
+                darkMode ? "bg-gray-900" : "bg-white"
             } transition-colors`}
         >
             <div className="w-full sm:max-w-md relative sm:[perspective:1000px]">
@@ -168,7 +168,7 @@ const CryptoPup = () => {
                     }`}
                 >
                     {/* FRONT SIDE */}
-                    <div className="w-1/2 h-full shrink-0 sm:w-full sm:h-full sm:absolute sm:inset-0 sm:[backface-visibility:hidden] pt-[calc(env(safe-area-inset-top)+clamp(0.75rem,4dvh,2.5rem))] px-6 pb-[calc(env(safe-area-inset-bottom)+clamp(0.75rem,2.5dvh,1.5rem))] bg-gray-100 dark:bg-gray-900 sm:bg-white sm:dark:bg-gray-800 rounded-none sm:rounded-xl text-center flex flex-col gap-[clamp(0.5rem,2dvh,1.25rem)] sm:gap-3 sm:pt-7 sm:pb-4 min-h-[400px]">
+                    <div className="w-1/2 h-full shrink-0 sm:w-full sm:h-full sm:absolute sm:inset-0 sm:[backface-visibility:hidden] pt-[calc(env(safe-area-inset-top)+clamp(0.75rem,4dvh,2.5rem))] px-6 pb-[calc(env(safe-area-inset-bottom)+clamp(0.75rem,2.5dvh,1.5rem))] bg-white dark:bg-gray-900 sm:bg-white sm:dark:bg-gray-800 rounded-none sm:rounded-xl text-center flex flex-col gap-[clamp(0.5rem,2dvh,1.25rem)] sm:gap-3 sm:pt-7 sm:pb-4 min-h-[400px]">
                     <div className="flex items-center">
                         {/* I Button */}
                         <div className="flex-1 flex justify-start">
@@ -304,7 +304,7 @@ const CryptoPup = () => {
                     </div>
 
                     {/* BACK SIDE */}
-                    <div className="relative w-1/2 h-full shrink-0 sm:w-full sm:h-full sm:absolute sm:inset-0 sm:[backface-visibility:hidden] sm:[transform:rotateY(180deg)] pt-[calc(env(safe-area-inset-top)+clamp(0.75rem,4dvh,2.5rem))] px-6 pb-[calc(env(safe-area-inset-bottom)+clamp(0.75rem,2.5dvh,1.5rem))] sm:p-6 bg-gray-100 dark:bg-gray-900 sm:bg-white sm:dark:bg-gray-800 rounded-none sm:rounded-xl text-center min-h-[400px] flex flex-col sm:justify-center">
+                    <div className="relative w-1/2 h-full shrink-0 sm:w-full sm:h-full sm:absolute sm:inset-0 sm:[backface-visibility:hidden] sm:[transform:rotateY(180deg)] pt-[calc(env(safe-area-inset-top)+clamp(0.75rem,4dvh,2.5rem))] px-6 pb-[calc(env(safe-area-inset-bottom)+clamp(0.75rem,2.5dvh,1.5rem))] sm:p-6 bg-white dark:bg-gray-900 sm:bg-white sm:dark:bg-gray-800 rounded-none sm:rounded-xl text-center min-h-[400px] flex flex-col sm:justify-center">
                         <div className="flex items-center h-8 sm:hidden">
                             <button
                                 onClick={() => setFlipped(false)}
