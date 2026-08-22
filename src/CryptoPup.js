@@ -1,22 +1,64 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Info, ArrowLeft } from 'lucide-react';
+import Sparkline from "./Sparkline";
+import { readEntry, writeEntry } from "./persistentCache";
 
-const COINS = {
-    bitcoin: "Bitcoin",
-    ethereum: "Ethereum",
-    dogecoin: "Dogecoin",
+const COIN_ID = "bitcoin";
+
+const TREND_LABELS = {
+    "24h": "Last 24 hours",
+    "1w": "Last 7 days",
+    "1m": "Last 30 days",
 };
 
-const PERIODS = {
-    "24h": "price_change_percentage_24h_in_currency",
-    "7d": "price_change_percentage_7d_in_currency",
-    "30d": "price_change_percentage_30d_in_currency",
+// A Netlify scheduled function refreshes this coin's price + 30-day chart
+// every 15 minutes and caches it in Netlify Blobs (see netlify/functions).
+// The client only ever talks to this same-origin endpoint, never to
+// CoinGecko directly, so no visitor is exposed to CoinGecko's rate limits.
+const CRYPTO_DATA_URL = "/api/crypto-data";
+
+// One 30-day hourly series per coin, sliced client-side per period. The %
+// change shown for each period is derived from this same series (first
+// point vs. last), not CoinGecko's price_change_percentage field, for
+// consistency across all three periods from a single fetch.
+const SLICE_POINTS = {
+    "24h": 24,
+    "1w": 24 * 7,
+    "1m": Infinity,
 };
 
-const CACHE_DURATION = 60000; // 60 seconds
+const sliceChartData = (prices, periodKey) => {
+    if (!prices) return null;
+    const n = SLICE_POINTS[periodKey];
+    return Number.isFinite(n) ? prices.slice(-n) : prices;
+};
+
+// The server-side cache only turns over every 15 minutes, so there's no
+// benefit to the client re-fetching more often than that.
+const CACHE_DURATION = 5 * 60 * 1000;
+
+const fetchJson = async (url) => {
+    const res = await fetch(url);
+    if (!res.ok) {
+        throw new Error(`Request failed with status ${res.status}`);
+    }
+    return res.json();
+};
+
+// Retries once on a transient network blip.
+const withRetry = async (task, attempt = 0) => {
+    try {
+        return await task();
+    } catch (err) {
+        if (attempt < 1) {
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+            return withRetry(task, attempt + 1);
+        }
+        throw err;
+    }
+};
 
 const CryptoPup = () => {
-    const [coin, setCoin] = useState("bitcoin");
     const [period, setPeriod] = useState("24h");
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -24,104 +66,99 @@ const CryptoPup = () => {
     const [darkMode, setDarkMode] = useState(false);
     const [flipped, setFlipped] = useState(false);
     const [retryToken, setRetryToken] = useState(0);
+    const [chartRawData, setChartRawData] = useState(null);
 
-    // in-memory cache { bitcoin: { data: ..., timestamp: ... }, ... }
+    // in-memory cache { bitcoin: { data: { price, prices }, timestamp: ... }, ... }
     const cacheRef = useRef({});
+    // in-flight promise, keyed the same way, so concurrent callers for the
+    // same coin share one request instead of firing twice.
+    const pendingRef = useRef({});
+
+    // Checks the in-memory cache first, then falls back to the localStorage
+    // mirror — populated by an earlier load in this tab, a reload, or
+    // another tab entirely — before deciding a fetch is actually needed.
+    const freshEntry = (coinId) => {
+        const inMemory = cacheRef.current[coinId];
+        if (inMemory && Date.now() - inMemory.timestamp < CACHE_DURATION) {
+            return inMemory;
+        }
+        const persisted = readEntry("crypto", coinId);
+        if (persisted && Date.now() - persisted.timestamp < CACHE_DURATION) {
+            cacheRef.current[coinId] = persisted;
+            return persisted;
+        }
+        return null;
+    };
+
+    const getOrFetchCryptoData = useCallback((coinId) => {
+        const cached = freshEntry(coinId);
+        if (cached) {
+            return Promise.resolve(cached.data);
+        }
+        if (pendingRef.current[coinId]) {
+            return pendingRef.current[coinId];
+        }
+
+        const request = withRetry(async () => {
+            const json = await fetchJson(`${CRYPTO_DATA_URL}?coin=${coinId}`);
+            if (!json.price || !json.prices || json.prices.length < 2) {
+                throw new Error("Incomplete data returned");
+            }
+            const timestamp = Date.now();
+            cacheRef.current[coinId] = { data: json, timestamp };
+            writeEntry("crypto", coinId, json, timestamp);
+            return json;
+        }).finally(() => {
+            delete pendingRef.current[coinId];
+        });
+
+        pendingRef.current[coinId] = request;
+        return request;
+    }, []);
 
     useEffect(() => {
         document.documentElement.classList.toggle("dark", darkMode);
     }, [darkMode]);
 
     useEffect(() => {
-        const controller = new AbortController();
         let cancelled = false;
+        if (!freshEntry(COIN_ID)) {
+            setLoading(true);
+        }
+        setError(null);
 
-        // Retries once on transient failures (network blips, rate limits, bad
-        // response bodies) before giving up and surfacing an error to the user.
-        const fetchWithRetry = async (attempt) => {
-            try {
-                const res = await fetch(
-                    `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${coin}&price_change_percentage=24h,7d,30d`,
-                    { signal: controller.signal }
-                );
-
-                if (!res.ok) {
-                    throw new Error(`CoinGecko request failed with status ${res.status}`);
-                }
-
-                const json = await res.json();
-                const coinData = json[0];
-
-                if (!coinData) {
-                    throw new Error("No data returned for this coin");
-                }
-
+        getOrFetchCryptoData(COIN_ID)
+            .then((json) => {
                 if (cancelled) return;
-                console.log("📦 Received data:", coinData);
-                setData(coinData);
+                setData(json.price);
+                setChartRawData(json.prices);
                 setError(null);
-                cacheRef.current[coin] = { data: coinData, timestamp: Date.now() };
-            } catch (err) {
-                if (err.name === "AbortError" || cancelled) return;
-
-                if (attempt < 1) {
-                    console.warn(`⚠️ Fetch attempt ${attempt + 1} failed, retrying…`, err);
-                    await new Promise((resolve) => setTimeout(resolve, 1000));
-                    if (!cancelled) await fetchWithRetry(attempt + 1);
-                    return;
-                }
-
+            })
+            .catch((err) => {
+                if (cancelled) return;
                 console.error("❌ Error fetching data", err);
                 setError("Couldn't load data. Please try again.");
-            }
-        };
-
-        const fetchCoinData = async () => {
-            console.log(`Selected coin: ${coin}`);
-            setLoading(true);
-            setError(null);
-
-            const now = Date.now();
-            const cached = cacheRef.current[coin];
-
-            if (cached && now - cached.timestamp < CACHE_DURATION) {
-                console.log("✅ Using cached data for", coin);
-                setData(cached.data);
-                setLoading(false);
-                return;
-            }
-
-            console.log("🆕 Fetching new data for", coin);
-            await fetchWithRetry(0);
-            if (!cancelled) setLoading(false);
-        };
-
-        fetchCoinData();
+            })
+            .finally(() => {
+                if (!cancelled) setLoading(false);
+            });
 
         return () => {
             cancelled = true;
-            controller.abort();
         };
-    }, [coin, retryToken]);
+    }, [retryToken, getOrFetchCryptoData]);
 
     const handleRetry = () => setRetryToken((t) => t + 1);
-
-    const getChange = () => {
-        if (!data) return null;
-        return data[PERIODS[period]];
-    };
 
     const getMoodImage = (change) => {
         return change >= 0 ? "/happy-dog.webp" : "/sad-dog.webp";
     };
 
-    const getCaption = (change) => {
-        return change >= 0
-            ? `${data.name} us up. Uzi is happy!`
-            : `${data.name} us down. Uzi is sad.`;
-    };
-
-    const change = getChange();
+    const chartData = sliceChartData(chartRawData, period);
+    const change =
+        chartData && chartData.length >= 2 && chartData[0][1]
+            ? ((chartData[chartData.length - 1][1] - chartData[0][1]) / chartData[0][1]) * 100
+            : null;
 
     return (
         <div
@@ -129,27 +166,37 @@ const CryptoPup = () => {
                 darkMode ? "bg-gray-900" : "bg-gray-100"
             } transition-colors`}
         >
-            <div className="perspective w-full max-w-md relative">
+            <div className="w-full sm:max-w-md relative sm:[perspective:1000px]">
                 <div
-                    className={`relative w-full h-[640px] transition-transform duration-500 transform-style-preserve-3d ${
-                        flipped ? "rotate-y-180" : ""
+                    className={`relative w-full h-screen sm:h-[600px] overflow-hidden sm:overflow-visible transition-transform duration-500 ease-in-out sm:[transform-style:preserve-3d] ${
+                        flipped ? "sm:[transform:rotateY(180deg)]" : ""
+                    }`}
+                >
+                <div
+                    className={`flex w-[200%] h-full transition-transform duration-500 ease-in-out sm:contents ${
+                        flipped ? "-translate-x-1/2" : "translate-x-0"
                     }`}
                 >
                     {/* FRONT SIDE */}
-                    <div className="absolute w-full h-full backface-hidden p-6 bg-white dark:bg-gray-800 rounded-xl text-center space-y-4 min-h-[400px]">
-                    <div className="">
-
+                    <div className="w-1/2 h-full shrink-0 sm:w-full sm:h-full sm:absolute sm:inset-0 sm:[backface-visibility:hidden] pt-[max(2.5rem,env(safe-area-inset-top)+1rem)] px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] bg-gray-100 dark:bg-gray-900 sm:bg-white sm:dark:bg-gray-800 rounded-none sm:rounded-xl text-center flex flex-col gap-5 sm:gap-3 sm:pt-7 sm:pb-4 min-h-[400px]">
+                    <div className="flex items-center">
                         {/* I Button */}
-                        <button
-                            onClick={() => setFlipped(true)}
-                            className="absolute top-5 left-4 text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-white text-xl"
-                            aria-label="Show Info"
-                        >
-                            <Info size={28} strokeWidth={2} />
-                        </button>
+                        <div className="flex-1 flex justify-start">
+                            <button
+                                onClick={() => setFlipped(true)}
+                                className="text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-white"
+                                aria-label="Show Info"
+                            >
+                                <Info size={24} strokeWidth={2} />
+                            </button>
+                        </div>
+
+                        <h1 className="text-2xl sm:text-xl font-bold font-jet text-gray-800 dark:text-gray-100 whitespace-nowrap">
+                            CryptoPup
+                        </h1>
 
                         {/* Dark mode toggle */}
-                        <div className="flex justify-end">
+                        <div className="flex-1 flex justify-end">
                             <button
                                 onClick={() => setDarkMode(!darkMode)}
                                 className={`relative w-12 h-6 flex items-center rounded-full p-1 transition-colors duration-300 ${
@@ -166,48 +213,47 @@ const CryptoPup = () => {
                                 />
                             </button>
                         </div>
-
                         </div>
 
-                        <h1 className="text-2xl font-bold font-jet text-gray-800 dark:text-gray-100">
-                            CryptoPup
-                        </h1>
-
-                        {/* Dropdowns */}
-                        <div className="space-y-2">
-                            <select
-                                value={coin}
-                                onChange={(e) => setCoin(e.target.value)}
-                                className="w-full p-2 rounded border dark:bg-gray-700 dark:text-white dark:border-gray-600 focus:outline-none focus:ring-0 font-jet"
-                            >
-                                {Object.entries(COINS).map(([key, label]) => (
-                                    <option key={key} value={key}>
-                                        {label}
-                                    </option>
-                                ))}
-                            </select>
-
-                            <select
-                                value={period}
-                                onChange={(e) => setPeriod(e.target.value)}
-                                className="w-full p-2 rounded border dark:bg-gray-700 dark:text-white dark:border-gray-600 focus:outline-none focus:ring-0 font-jet"
-                            >
-                                {Object.keys(PERIODS).map((p) => (
-                                    <option key={p} value={p}>
-                                        {p}
-                                    </option>
-                                ))}
-                            </select>
+                        {/* Period selector */}
+                        <div
+                            className="relative grid rounded-full bg-gray-200 dark:bg-gray-700 px-[5px] py-1 w-fit mx-auto mt-4"
+                            style={{
+                                gridTemplateColumns: `repeat(${Object.keys(SLICE_POINTS).length}, 1fr)`,
+                            }}
+                        >
+                            <div
+                                className="absolute left-[5px] top-1 bottom-1 rounded-full bg-white dark:bg-gray-500 shadow transition-transform duration-300 ease-out"
+                                style={{
+                                    width: `calc((100% - 10px) / ${Object.keys(SLICE_POINTS).length})`,
+                                    transform: `translateX(${
+                                        Object.keys(SLICE_POINTS).indexOf(period) * 100
+                                    }%)`,
+                                }}
+                            />
+                            {Object.keys(SLICE_POINTS).map((p) => (
+                                <button
+                                    key={p}
+                                    onClick={() => setPeriod(p)}
+                                    className={`relative z-10 px-4 py-1 text-sm rounded-full font-jet transition-colors ${
+                                        period === p
+                                            ? "text-gray-800 dark:text-gray-100"
+                                            : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                                    }`}
+                                >
+                                    {p.toUpperCase()}
+                                </button>
+                            ))}
                         </div>
 
                         {/* Content */}
                         {loading ? (
-                            <div className="flex flex-col items-center space-y-2 pt-4 animate-pulse text-gray-400 dark:text-gray-500">
-                                <div className="h-6 w-32 bg-gray-300 dark:bg-gray-600 rounded" />
-                                <div className="h-4 w-48 bg-gray-300 dark:bg-gray-600 rounded" />
-                                <div className="h-4 w-24 bg-gray-300 dark:bg-gray-600 rounded" />
-                                <div className="h-52 w-52 bg-gray-300 dark:bg-gray-600 rounded" />
+                            <div className="flex flex-col items-center space-y-2 pt-2 animate-pulse text-gray-400 dark:text-gray-500">
                                 <div className="h-4 w-40 bg-gray-300 dark:bg-gray-600 rounded" />
+                                <div className="h-4 w-20 bg-gray-300 dark:bg-gray-600 rounded" />
+                                <div className="h-56 w-56 sm:h-44 sm:w-44 bg-gray-300 dark:bg-gray-600 rounded" />
+                                <div className="h-4 w-36 bg-gray-300 dark:bg-gray-600 rounded" />
+                                <div className="h-40 sm:h-24 w-full bg-gray-300 dark:bg-gray-600 rounded" />
                             </div>
                         ) : error ? (
                             <div className="flex flex-col items-center space-y-3 pt-4">
@@ -223,12 +269,9 @@ const CryptoPup = () => {
                             </div>
                         ) : data ? (
                             <>
-                                <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100 font-jet">
-                                    {data.name}
-                                </h2>
-                                <div className="space-y-0">
+                                <div className="space-y-0.5 sm:space-y-0 text-base sm:text-sm mt-auto">
                                     <p className="text-gray-800 dark:text-gray-300 font-jet">
-                                        Current Price: $
+                                        {data.name} Price: $
                                         {data.current_price.toLocaleString()}
                                     </p>
                                     <p
@@ -241,16 +284,24 @@ const CryptoPup = () => {
                                         Change ({period}): {change.toFixed(2)}%
                                     </p>
                                 </div>
-                                <div className="h-52 w-52 mx-auto overflow-hidden rounded flex items-center justify-center">
+                                <div className="h-56 w-56 sm:h-44 sm:w-44 mx-auto overflow-hidden rounded flex items-center justify-center">
                                     <img
                                         src={getMoodImage(change)}
                                         alt="Crypto pup mood"
                                         className="max-h-full max-w-full object-contain transition-opacity duration-300"
                                     />
                                 </div>
-                                <p className="font-medium text-gray-800 dark:text-gray-100 font-jet">
-                                    {getCaption(change)}
-                                </p>
+                                <div className="w-full px-2 pt-4 mt-auto">
+                                    <Sparkline
+                                        prices={chartData}
+                                        period={period}
+                                        positive={change >= 0}
+                                        darkMode={darkMode}
+                                    />
+                                    <p className="text-sm sm:text-xs text-gray-400 dark:text-gray-500 font-jet mt-1 text-left">
+                                        {TREND_LABELS[period]}
+                                    </p>
+                                </div>
                             </>
                         ) : (
                             <p className="text-gray-500 dark:text-gray-400">
@@ -260,7 +311,7 @@ const CryptoPup = () => {
                     </div>
 
                     {/* BACK SIDE */}
-                    <div className="absolute w-full h-full rotate-y-180 backface-hidden p-6 bg-white dark:bg-gray-800 rounded-xl text-center min-h-[400px] flex flex-col justify-center">
+                    <div className="relative w-1/2 h-full shrink-0 sm:w-full sm:h-full sm:absolute sm:inset-0 sm:[backface-visibility:hidden] sm:[transform:rotateY(180deg)] pt-[max(2.5rem,env(safe-area-inset-top)+1rem)] px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:p-6 bg-gray-100 dark:bg-gray-900 sm:bg-white sm:dark:bg-gray-800 rounded-none sm:rounded-xl text-center min-h-[400px] flex flex-col justify-center">
                         <button
                             onClick={() => setFlipped(false)}
                             className="absolute top-4 left-4 text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-white text-xl"
@@ -270,10 +321,10 @@ const CryptoPup = () => {
                         </button>
 
                         <div className="flex-1 flex flex-col justify-center items-center px-4">
-                            <h2 className="text-xl font-bold text-gray-800 dark:text-white font-jet">
+                            <h2 className="text-2xl sm:text-xl font-bold text-gray-800 dark:text-white font-jet">
                                 About CryptoPup
                             </h2>
-                            <p className="text-gray-600 dark:text-gray-300 mt-4 text-sm font-jet leading-relaxed">
+                            <p className="text-gray-600 dark:text-gray-300 mt-4 text-base sm:text-sm font-jet leading-relaxed">
                             My dog Uzi sold his treats 🍗 and went all in on crypto.
                             <br /><br />
                             Now you can watch price movements and chase gains 🚀 with him.
@@ -284,9 +335,10 @@ const CryptoPup = () => {
                             🐕
                         </div>
                         <p className="text-xs text-gray-400 dark:text-gray-500 font-jet">
-                            © 2025 Daniel Brainich 
+                            © 2026 Daniel Brainich
                         </p>
                     </div>
+                </div>
                 </div>
             </div>
         </div>

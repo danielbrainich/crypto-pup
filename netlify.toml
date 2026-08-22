@@ -1,0 +1,9 @@
+[build]
+  command = "npm run build"
+  publish = "build"
+  functions = "netlify/functions"
+
+[[redirects]]
+  from = "/api/crypto-data"
+  to = "/.netlify/functions/crypto-data"
+  status = 200
