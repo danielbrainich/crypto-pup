@@ -153,7 +153,7 @@ const CryptoPup = () => {
     return (
         <div
             className={`min-h-dvh flex items-center justify-center ${
-                darkMode ? "bg-gray-900" : "bg-white"
+                darkMode ? "bg-gray-900" : "bg-gray-100"
             } transition-colors`}
         >
             <div className="w-full sm:max-w-md relative sm:[perspective:1000px]">
@@ -241,9 +241,9 @@ const CryptoPup = () => {
                             <div className="flex flex-col items-center space-y-2 pt-2 animate-pulse text-gray-400 dark:text-gray-500">
                                 <div className="h-4 w-40 bg-gray-300 dark:bg-gray-600 rounded" />
                                 <div className="h-4 w-20 bg-gray-300 dark:bg-gray-600 rounded" />
-                                <div className="h-[clamp(7rem,28dvh,17rem)] w-[clamp(7rem,28dvh,17rem)] sm:h-52 sm:w-52 bg-gray-300 dark:bg-gray-600 rounded" />
+                                <div className="h-[clamp(6rem,22dvh,14rem)] w-[clamp(6rem,22dvh,14rem)] sm:h-52 sm:w-52 bg-gray-300 dark:bg-gray-600 rounded" />
                                 <div className="h-4 w-36 bg-gray-300 dark:bg-gray-600 rounded" />
-                                <div className="h-[clamp(4rem,16dvh,10rem)] sm:h-24 w-full bg-gray-300 dark:bg-gray-600 rounded" />
+                                <div className="h-[clamp(5rem,21dvh,13rem)] sm:h-24 w-full bg-gray-300 dark:bg-gray-600 rounded" />
                             </div>
                         ) : error ? (
                             <div className="flex flex-col items-center space-y-3 pt-4">
@@ -275,7 +275,7 @@ const CryptoPup = () => {
                                             Change ({period}): {change.toFixed(2)}%
                                         </p>
                                     </div>
-                                    <div className="h-[clamp(7rem,28dvh,17rem)] w-[clamp(7rem,28dvh,17rem)] sm:h-52 sm:w-52 mx-auto overflow-hidden rounded flex items-center justify-center">
+                                    <div className="flex-1 min-h-0 aspect-square my-[clamp(0.5rem,3dvh,1.5rem)] sm:flex-none sm:aspect-auto sm:my-0 sm:h-52 sm:w-52 mx-auto overflow-hidden rounded flex items-center justify-center">
                                         <img
                                             src={getMoodImage(change)}
                                             alt="Crypto pup mood"
@@ -289,7 +289,7 @@ const CryptoPup = () => {
                                         period={period}
                                         positive={change >= 0}
                                         darkMode={darkMode}
-                                        className="h-[clamp(4rem,15dvh,10rem)] sm:h-36"
+                                        className="h-[clamp(6rem,26dvh,15rem)] sm:h-36"
                                     />
                                     <p className="text-sm sm:text-xs text-gray-400 dark:text-gray-500 font-jet mt-1 text-left">
                                         {TREND_LABELS[period]}
