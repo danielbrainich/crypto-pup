@@ -1,5 +1,8 @@
 const COIN_ID = "bitcoin";
-const CHART_DAYS = 30;
+// 90 is the top of CoinGecko's hourly-granularity window (above that it
+// drops to daily candles), so this is the longest range we can offer
+// without changing how the chart data looks.
+const CHART_DAYS = 90;
 
 const PRICE_URL = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${COIN_ID}`;
 const CHART_URL = `https://api.coingecko.com/api/v3/coins/${COIN_ID}/market_chart?vs_currency=usd&days=${CHART_DAYS}`;

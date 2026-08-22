@@ -8,22 +8,24 @@ const TREND_LABELS = {
     "24h": "Last 24 hours",
     "1w": "Last 7 days",
     "1m": "Last 30 days",
+    "3m": "Last 90 days",
 };
 
-// A Netlify scheduled function refreshes this coin's price + 30-day chart
+// A Netlify scheduled function refreshes this coin's price + 90-day chart
 // every 15 minutes and caches it in Netlify Blobs (see netlify/functions).
 // The client only ever talks to this same-origin endpoint, never to
 // CoinGecko directly, so no visitor is exposed to CoinGecko's rate limits.
 const CRYPTO_DATA_URL = "/api/crypto-data";
 
-// One 30-day hourly series per coin, sliced client-side per period. The %
+// One 90-day hourly series per coin, sliced client-side per period. The %
 // change shown for each period is derived from this same series (first
 // point vs. last), not CoinGecko's price_change_percentage field, for
-// consistency across all three periods from a single fetch.
+// consistency across all four periods from a single fetch.
 const SLICE_POINTS = {
     "24h": 24,
     "1w": 24 * 7,
-    "1m": Infinity,
+    "1m": 24 * 30,
+    "3m": Infinity,
 };
 
 const sliceChartData = (prices, periodKey) => {
