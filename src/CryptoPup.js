@@ -259,7 +259,7 @@ const CryptoPup = () => {
                             </div>
                         ) : data ? (
                             <>
-                                <div className="flex-1 flex flex-col items-center justify-center gap-3 sm:gap-2 min-h-0">
+                                <div className="flex-1 flex flex-col items-center justify-center gap-3 sm:gap-2 min-h-0 mt-[clamp(0.75rem,2dvh,1.25rem)] sm:mt-0">
                                     <div className="space-y-0.5 sm:space-y-0 text-base sm:text-sm">
                                         <p className="text-gray-800 dark:text-gray-300 font-jet">
                                             {data.name} Price: $
@@ -272,10 +272,10 @@ const CryptoPup = () => {
                                                     : "text-red-500"
                                             } font-jet`}
                                         >
-                                            Change ({period}): {change.toFixed(2)}%
+                                            Change ({period.toUpperCase()}): {change.toFixed(2)}%
                                         </p>
                                     </div>
-                                    <div className="flex-1 min-h-0 aspect-square my-[clamp(0.5rem,3dvh,1.5rem)] sm:flex-none sm:aspect-auto sm:my-0 sm:h-52 sm:w-52 mx-auto overflow-hidden rounded flex items-center justify-center">
+                                    <div className="flex-1 min-h-0 aspect-square mt-[clamp(0.5rem,3dvh,1.5rem)] mb-[clamp(0.25rem,1dvh,0.5rem)] sm:flex-none sm:aspect-auto sm:mt-0 sm:mb-0 sm:h-52 sm:w-52 mx-auto overflow-hidden rounded flex items-center justify-center">
                                         <img
                                             src={getMoodImage(change)}
                                             alt="Crypto pup mood"
