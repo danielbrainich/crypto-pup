@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Info, ArrowLeft } from 'lucide-react';
 import Sparkline from "./Sparkline";
-import { readEntry, writeEntry } from "./persistentCache";
 
 const COIN_ID = "bitcoin";
 
@@ -74,18 +73,10 @@ const CryptoPup = () => {
     // same coin share one request instead of firing twice.
     const pendingRef = useRef({});
 
-    // Checks the in-memory cache first, then falls back to the localStorage
-    // mirror — populated by an earlier load in this tab, a reload, or
-    // another tab entirely — before deciding a fetch is actually needed.
     const freshEntry = (coinId) => {
         const inMemory = cacheRef.current[coinId];
         if (inMemory && Date.now() - inMemory.timestamp < CACHE_DURATION) {
             return inMemory;
-        }
-        const persisted = readEntry("crypto", coinId);
-        if (persisted && Date.now() - persisted.timestamp < CACHE_DURATION) {
-            cacheRef.current[coinId] = persisted;
-            return persisted;
         }
         return null;
     };
@@ -106,7 +97,6 @@ const CryptoPup = () => {
             }
             const timestamp = Date.now();
             cacheRef.current[coinId] = { data: json, timestamp };
-            writeEntry("crypto", coinId, json, timestamp);
             return json;
         }).finally(() => {
             delete pendingRef.current[coinId];
