@@ -251,7 +251,7 @@ const CryptoPup = () => {
                             <div className="flex flex-col items-center space-y-2 pt-2 animate-pulse text-gray-400 dark:text-gray-500">
                                 <div className="h-4 w-40 bg-gray-300 dark:bg-gray-600 rounded" />
                                 <div className="h-4 w-20 bg-gray-300 dark:bg-gray-600 rounded" />
-                                <div className="h-[clamp(6rem,22dvh,14rem)] w-[clamp(6rem,22dvh,14rem)] sm:h-44 sm:w-44 bg-gray-300 dark:bg-gray-600 rounded" />
+                                <div className="h-[clamp(7rem,28dvh,17rem)] w-[clamp(7rem,28dvh,17rem)] sm:h-52 sm:w-52 bg-gray-300 dark:bg-gray-600 rounded" />
                                 <div className="h-4 w-36 bg-gray-300 dark:bg-gray-600 rounded" />
                                 <div className="h-[clamp(4rem,16dvh,10rem)] sm:h-24 w-full bg-gray-300 dark:bg-gray-600 rounded" />
                             </div>
@@ -269,34 +269,37 @@ const CryptoPup = () => {
                             </div>
                         ) : data ? (
                             <>
-                                <div className="space-y-0.5 sm:space-y-0 text-base sm:text-sm mt-auto">
-                                    <p className="text-gray-800 dark:text-gray-300 font-jet">
-                                        {data.name} Price: $
-                                        {data.current_price.toLocaleString()}
-                                    </p>
-                                    <p
-                                        className={`font-medium ${
-                                            change >= 0
-                                                ? "text-green-500"
-                                                : "text-red-500"
-                                        } font-jet`}
-                                    >
-                                        Change ({period}): {change.toFixed(2)}%
-                                    </p>
+                                <div className="flex-1 flex flex-col items-center justify-center gap-3 sm:gap-2 min-h-0">
+                                    <div className="space-y-0.5 sm:space-y-0 text-base sm:text-sm">
+                                        <p className="text-gray-800 dark:text-gray-300 font-jet">
+                                            {data.name} Price: $
+                                            {data.current_price.toLocaleString()}
+                                        </p>
+                                        <p
+                                            className={`font-medium ${
+                                                change >= 0
+                                                    ? "text-green-500"
+                                                    : "text-red-500"
+                                            } font-jet`}
+                                        >
+                                            Change ({period}): {change.toFixed(2)}%
+                                        </p>
+                                    </div>
+                                    <div className="h-[clamp(7rem,28dvh,17rem)] w-[clamp(7rem,28dvh,17rem)] sm:h-52 sm:w-52 mx-auto overflow-hidden rounded flex items-center justify-center">
+                                        <img
+                                            src={getMoodImage(change)}
+                                            alt="Crypto pup mood"
+                                            className="max-h-full max-w-full object-contain transition-opacity duration-300"
+                                        />
+                                    </div>
                                 </div>
-                                <div className="h-[clamp(6rem,22dvh,14rem)] w-[clamp(6rem,22dvh,14rem)] sm:h-44 sm:w-44 mx-auto overflow-hidden rounded flex items-center justify-center">
-                                    <img
-                                        src={getMoodImage(change)}
-                                        alt="Crypto pup mood"
-                                        className="max-h-full max-w-full object-contain transition-opacity duration-300"
-                                    />
-                                </div>
-                                <div className="w-full px-2 pt-4 mt-auto">
+                                <div className="w-full px-2 shrink-0">
                                     <Sparkline
                                         prices={chartData}
                                         period={period}
                                         positive={change >= 0}
                                         darkMode={darkMode}
+                                        className="h-[clamp(4rem,15dvh,10rem)] sm:h-36"
                                     />
                                     <p className="text-sm sm:text-xs text-gray-400 dark:text-gray-500 font-jet mt-1 text-left">
                                         {TREND_LABELS[period]}

@@ -21,7 +21,7 @@ const formatTime = (timestamp, period) => {
         : date.toLocaleDateString([], { month: "short", day: "numeric" });
 };
 
-const Sparkline = ({ prices, period, positive, darkMode }) => {
+const Sparkline = ({ prices, period, positive, darkMode, className = "" }) => {
     const containerRef = useRef(null);
     const [hoverIndex, setHoverIndex] = useState(null);
 
@@ -69,7 +69,7 @@ const Sparkline = ({ prices, period, positive, darkMode }) => {
     return (
         <div
             ref={containerRef}
-            className="relative w-full select-none"
+            className={`relative w-full select-none ${className}`}
             role="img"
             aria-label={`Price trend, ${formatPrice(values[0])} to ${formatPrice(
                 values[values.length - 1]
@@ -80,7 +80,7 @@ const Sparkline = ({ prices, period, positive, darkMode }) => {
         >
             <svg
                 viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
-                className="w-full h-[clamp(4rem,16dvh,10rem)] sm:h-32"
+                className="w-full h-full"
                 preserveAspectRatio="none"
                 aria-hidden="true"
             >
@@ -92,6 +92,7 @@ const Sparkline = ({ prices, period, positive, darkMode }) => {
                     y2={startY}
                     stroke={darkMode ? "#4b5563" : "#d1d5db"}
                     strokeWidth="1"
+                    vectorEffect="non-scaling-stroke"
                 />
 
                 <path d={areaPath} fill={lineColor} opacity="0.12" />
@@ -103,6 +104,7 @@ const Sparkline = ({ prices, period, positive, darkMode }) => {
                     strokeWidth="2"
                     strokeLinejoin="round"
                     strokeLinecap="round"
+                    vectorEffect="non-scaling-stroke"
                 />
 
                 {hoverIndex !== null && (
@@ -113,20 +115,25 @@ const Sparkline = ({ prices, period, positive, darkMode }) => {
                         y2={baselineY}
                         stroke={darkMode ? "#6b7280" : "#9ca3af"}
                         strokeWidth="1"
-                    />
-                )}
-
-                {hoverIndex !== null && (
-                    <circle
-                        cx={xAt(activeIndex)}
-                        cy={yAt(activePoint[1])}
-                        r="4"
-                        fill={lineColor}
-                        stroke={ringColor}
-                        strokeWidth="2"
+                        vectorEffect="non-scaling-stroke"
                     />
                 )}
             </svg>
+
+            {/* Rendered as an HTML circle, not SVG, so it stays round even
+                though the chart above it is stretched non-uniformly
+                (preserveAspectRatio="none") to fill its box. */}
+            {hoverIndex !== null && (
+                <div
+                    className="absolute w-2 h-2 rounded-full -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+                    style={{
+                        left: `${(xAt(activeIndex) / VIEW_W) * 100}%`,
+                        top: `${(yAt(activePoint[1]) / VIEW_H) * 100}%`,
+                        backgroundColor: lineColor,
+                        boxShadow: `0 0 0 2px ${ringColor}`,
+                    }}
+                />
+            )}
 
             {hoverIndex !== null && (
                 <div
